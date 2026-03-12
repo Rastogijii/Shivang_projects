@@ -1,0 +1,275 @@
+#include <iostream>
+#include <string>
+#include <vector>
+
+// =======================================================================
+// 1. THE BASE (PARENT) CLASS
+// =======================================================================
+
+/**
+ * @class Vehicle
+ * @brief This is the base class for all vehicles in our rental system.
+ * It holds all the common properties and methods that every vehicle shares.
+ */
+class Vehicle {
+protected:
+    // We use 'protected' so that the 'child' classes (Car, Motorcycle)
+    // can access these variables directly, but they are still hidden
+    // from the outside world (like main()).
+    std::string make;
+    std::string model;
+    int year;
+    bool isRented;
+
+public:
+    // --- Constructor ---
+    // This runs when a new Vehicle object is created.
+    Vehicle(const std::string& m, const std::string& mdl, int y)
+        : make(m), model(mdl), year(y), isRented(false) {
+        // We use an "initializer list" (above) for efficiency.
+        // isRented is false by default when a new vehicle is added.
+    }
+
+    // --- Virtual Destructor ---
+    // This is VERY important for polymorphism. It ensures that when
+    // we delete a Vehicle pointer, the correct child (e.g., Car)
+    // destructor is called first.
+    virtual ~Vehicle() {}
+
+    // --- Public Methods (Getters) ---
+    // These allow outside code to read our private/protected data.
+    std::string getMake() const { return make; }
+    std::string getModel() const { return model; }
+    int getYear() const { return year; }
+    bool getIsRented() const { return isRented; }
+
+    // --- Public Methods (Actions) ---
+    void rentVehicle() {
+        if (!isRented) {
+            isRented = true;
+            std::cout << "Vehicle rented: " << make << " " << model << std::endl;
+        } else {
+            std::cout << "Sorry, this vehicle is already rented." << std::endl;
+        }
+    }
+
+    void returnVehicle() {
+        if (isRented) {
+            isRented = false;
+            std::cout << "Vehicle returned: " << make << " " << model << std::endl;
+        } else {
+            std::cout << "This vehicle was not rented." << std::endl;
+        }
+    }
+
+    // --- THE CORE OF POLYMORPHISM ---
+    /**
+     * @brief Displays the details of the vehicle.
+     * This is a 'virtual' function. It means that child classes
+     * can (and should) provide their own version of this function.
+     * When we call this function on a Vehicle pointer, C++ will
+     * run the correct version for the object's *actual* type.
+     */
+    virtual void displayDetails() const {
+        // The base version prints the common info.
+        std::cout << "  Make: " << make << ", Model: " << model << ", Year: " << year;
+        std::cout << ", Status: " << (isRented ? "Rented" : "Available");
+    }
+};
+
+// =======================================================================
+// 2. THE DERIVED (CHILD) CLASSES
+// =======================================================================
+
+/**
+ * @class Car
+ * @brief A 'Car' IS-A 'Vehicle'. It inherits from Vehicle
+ * and adds its own specific properties (numDoors).
+ */
+class Car : public Vehicle { // The ':' means "inherits from"
+private:
+    int numDoors;
+
+public:
+    // --- Constructor ---
+    // It takes its own arguments, plus the arguments for the
+    // base 'Vehicle' class.
+    Car(const std::string& m, const std::string& mdl, int y, int doors)
+        : Vehicle(m, mdl, y), numDoors(doors) { // Call the parent constructor
+        // The 'numDoors' is initialized. The parent's data is
+        // handled by the Vehicle constructor.
+    }
+
+    // --- Overridden Method ---
+    // We 'override' the base class's function. The 'override' keyword
+    // is a modern C++ best practice that helps catch bugs.
+    void displayDetails() const override {
+        std::cout << "[CAR]" << std::endl;
+        Vehicle::displayDetails(); // Call the parent version first
+        // Now print the car-specific info
+        std::cout << ", Doors: " << numDoors << std::endl;
+    }
+};
+
+/**
+ * @class Motorcycle
+ * @brief A 'Motorcycle' IS-A 'Vehicle'. It also inherits
+ * from Vehicle and adds its own properties (category).
+ */
+class Motorcycle : public Vehicle {
+private:
+    std::string category; // e.g., "Cruiser", "Sport", "Touring"
+
+public:
+    // --- Constructor ---
+    Motorcycle(const std::string& m, const std::string& mdl, int y, const std::string& cat)
+        : Vehicle(m, mdl, y), category(cat) { // Call the parent constructor
+    }
+
+    // --- Overridden Method ---
+    void displayDetails() const override {
+        std::cout << "[MOTORCYCLE]" << std::endl;
+        Vehicle::displayDetails(); // Call the parent version
+        // Print motorcycle-specific info
+        std::cout << ", Category: " << category << std::endl;
+    }
+};
+
+// =======================================================================
+// 3. THE "MANAGER" CLASS
+// =======================================================================
+
+/**
+ * @class RentalAgency
+ * @brief This class manages our fleet of vehicles. This is where
+ * the polymorphism really happens.
+ */
+class RentalAgency {
+private:
+    // This is the magic! A vector of BASE CLASS POINTERS.
+    // This allows us to store pointers to Cars, Motorcycles,
+    // and any other future Vehicle type in ONE list.
+    std::vector<Vehicle*> fleet;
+
+public:
+    // --- Destructor ---
+    // This is crucial for preventing memory leaks. Since this
+    // class "owns" the vehicles (it stores pointers to objects
+    // we create with 'new'), it must be responsible for 'delete'ing them.
+    ~RentalAgency() {
+        std::cout << "\nCleaning up fleet..." << std::endl;
+        for (Vehicle* v : fleet) { // <-- This is the corrected line
+            delete v; // This 'delete' calls the virtual destructor!
+        }
+        fleet.clear();
+    }
+
+    // --- Public Methods ---
+    void addVehicle(Vehicle* vehicle) {
+        // We take a pointer (created with 'new') and add it to our fleet.
+        fleet.push_back(vehicle);
+    }
+
+    void displayAllVehicles() const {
+        if (fleet.empty()) {
+            std::cout << "The rental agency has no vehicles." << std::endl;
+            return;
+        }
+
+        std::cout << "\n--- Vehicle Fleet ---" << std::endl;
+        for (size_t i = 0; i < fleet.size(); ++i) {
+            std::cout << i << ". "; // Print the index for renting
+            //
+            // THIS IS THE POLYMORPHIC CALL!
+            // We call displayDetails() on a Vehicle pointer.
+            // C++ automatically calls the 'Car' version if it's a Car
+            // or the 'Motorcycle' version if it's a Motorcycle.
+            //
+            fleet[i]->displayDetails();
+            std::cout << "---------------------" << std::endl;
+        }
+    }
+
+    void rentVehicle(int index) {
+        if (index < 0 || index >= fleet.size()) {
+            std::cout << "Invalid vehicle number." << std::endl;
+            return;
+        }
+        fleet[index]->rentVehicle(); // Delegate the work to the Vehicle
+    }
+    
+    void returnVehicle(int index) {
+        if (index < 0 || index >= fleet.size()) {
+            std::cout << "Invalid vehicle number." << std::endl;
+            return;
+        }
+        fleet[index]->returnVehicle(); // Delegate the work
+    }
+};
+
+// =======================================================================
+// 4. THE MAIN() FUNCTION (Our User Interface)
+// =======================================================================
+
+int main() {
+    // Create our agency
+    RentalAgency agency;
+
+    // Add vehicles to the agency.
+    // We use 'new' because we are creating objects that will be
+    // managed by the agency (and stored as pointers).
+    agency.addVehicle(new Car("Toyota", "Camry", 2022, 4));
+    agency.addVehicle(new Car("Honda", "Civic", 2023, 2));
+    agency.addVehicle(new Motorcycle("Harley-Davidson", "Street Bob", 2021, "Cruiser"));
+    agency.addVehicle(new Motorcycle("Yamaha", "MT-07", 2022, "Sport"));
+
+    int choice;
+    do {
+        std::cout << "\n=== Vehicle Rental Menu ===" << std::endl;
+        std::cout << "1. Display all vehicles" << std::endl;
+        std::cout << "2. Rent a vehicle" << std::endl;
+        std::cout << "3. Return a vehicle" << std::endl;
+        std::cout << "0. Exit" << std::endl;
+        std::cout << "Enter your choice: ";
+        std::cin >> choice;
+
+        if (std::cin.fail()) {
+            std::cin.clear(); // Clear the error flag
+            std::cin.ignore(10000, '\n'); // Discard bad input
+            choice = -1; // Set to an invalid choice
+        }
+
+        switch (choice) {
+            case 1:
+                agency.displayAllVehicles();
+                break;
+            case 2: {
+                agency.displayAllVehicles();
+                std::cout << "Enter the number of the vehicle to rent: ";
+                int rentIndex;
+                std::cin >> rentIndex;
+                agency.rentVehicle(rentIndex);
+                break;
+            }
+            case 3: {
+                agency.displayAllVehicles();
+                std::cout << "Enter the number of the vehicle to return: ";
+                int returnIndex;
+                std::cin >> returnIndex;
+                agency.returnVehicle(returnIndex);
+                break;
+            }
+            case 0:
+                std::cout << "Thank you for using the rental service!" << std::endl;
+                break;
+            default:
+                std::cout << "Invalid choice. Please try again." << std::endl;
+        }
+
+    } while (choice != 0);
+
+    // When 'agency' goes out of scope here at the end of main(),
+    // its destructor is automatically called, which
+    // cleans up all the 'new' Vehicle objects. No memory leaks!
+    return 0;
+}
