@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Clone - MUJ Project</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Circular', sans-serif;
+            overflow: hidden;
+        }
+        .spotify-green { color: #1DB954; }
+        .bg-spotify-green { background-color: #1DB954; }
+        .bg-card { background-color: #181818; }
+        .bg-card:hover { background-color: #282828; }
+        .sidebar { background-color: #000; width: 240px; }
+        .main-content { 
+            background: linear-gradient(to bottom, #222, #121212);
+            flex: 1;
+            overflow-y: auto;
+            height: calc(100vh - 90px);
+        }
+        .player-bar { background-color: #181818; height: 90px; border-top: 1px solid #282828; }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 12px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #5a5a5a; border-radius: 6px; }
+        ::-webkit-scrollbar-thumb:hover { background: #888; }
+
+        .play-btn-card {
+            opacity: 0;
+            transform: translateY(8px);
+            transition: all 0.3s ease;
+        }
+        .bg-card:hover .play-btn-card {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="sidebar hidden md:flex flex-col p-6 space-y-6">
+            <div class="mb-4">
+                <i class="fab fa-spotify text-3xl mb-2"></i>
+                <span class="text-xl font-bold ml-2">Spotify</span>
+            </div>
+            
+            <nav class="space-y-4 text-gray-400 font-bold">
+                <a href="#" class="flex items-center space-x-4 hover:text-white transition">
+                    <i class="fas fa-home text-xl"></i>
+                    <span>Home</span>
+                </a>
+                <a href="#" class="flex items-center space-x-4 hover:text-white transition">
+                    <i class="fas fa-search text-xl"></i>
+                    <span>Search</span>
+                </a>
+                <a href="#" class="flex items-center space-x-4 hover:text-white transition">
+                    <i class="fas fa-book text-xl"></i>
+                    <span>Your Library</span>
+                </a>
+            </nav>
+
+            <div class="pt-6 space-y-4 text-gray-400 font-bold">
+                <button class="flex items-center space-x-4 hover:text-white transition">
+                    <div class="bg-gray-400 text-black p-1 rounded-sm"><i class="fas fa-plus"></i></div>
+                    <span>Create Playlist</span>
+                </button>
+                <button class="flex items-center space-x-4 hover:text-white transition">
+                    <div class="bg-gradient-to-br from-indigo-700 to-blue-300 p-1 rounded-sm"><i class="fas fa-heart text-white"></i></div>
+                    <span>Liked Songs</span>
+                </button>
+            </div>
+
+            <div class="mt-auto border-t border-gray-800 pt-4">
+                <p class="text-xs text-gray-500 uppercase tracking-widest font-bold mb-2">Developed By</p>
+                <p class="text-sm font-bold text-white">Shivang Rastogi</p>
+                <p class="text-xs text-gray-400">Reg: 2428020246</p>
+                <p class="text-xs text-gray-500 mt-1">Manipal University Jaipur</p>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content relative p-8">
+            <!-- Header -->
+            <header class="flex justify-between items-center mb-8 sticky top-0 z-10 bg-opacity-95 py-2">
+                <div class="flex space-x-4">
+                    <button class="bg-black rounded-full w-8 h-8 flex items-center justify-center"><i class="fas fa-chevron-left"></i></button>
+                    <button class="bg-black rounded-full w-8 h-8 flex items-center justify-center opacity-50"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="bg-white text-black font-bold py-1 px-4 rounded-full text-sm hover:scale-105 transition">Explore Premium</button>
+                    <button class="bg-black text-white font-bold py-1 px-4 rounded-full text-sm border border-gray-600 flex items-center gap-2">
+                        <i class="fas fa-arrow-circle-down"></i> Install App
+                    </button>
+                    <div class="bg-black rounded-full p-2"><i class="fas fa-user"></i></div>
+                </div>
+            </header>
+
+            <!-- Playlists Section -->
+            <section class="mb-10">
+                <div class="flex justify-between items-end mb-4">
+                    <h2 class="text-2xl font-bold hover:underline cursor-pointer">Focus</h2>
+                    <span class="text-gray-400 text-sm font-bold hover:underline cursor-pointer">Show all</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6" id="playlist-container">
+                    <!-- Cards will be injected by JS -->
+                </div>
+            </section>
+
+            <section class="mb-10">
+                <div class="flex justify-between items-end mb-4">
+                    <h2 class="text-2xl font-bold hover:underline cursor-pointer">Spotify Playlists</h2>
+                    <span class="text-gray-400 text-sm font-bold hover:underline cursor-pointer">Show all</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6" id="spotify-playlists">
+                    <!-- Cards will be injected by JS -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Player Bar -->
+    <footer class="player-bar px-4 flex items-center justify-between z-20">
+        <!-- Current Song -->
+        <div class="flex items-center w-1/3">
+            <img src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=100&h=100&fit=crop" id="current-track-img" class="w-14 h-14 rounded shadow-lg mr-4" alt="Album Art">
+            <div>
+                <h4 class="text-sm font-bold hover:underline cursor-pointer" id="current-track-name">Select a track</h4>
+                <p class="text-xs text-gray-400 hover:underline cursor-pointer" id="current-track-artist">Click play to start</p>
+            </div>
+            <button class="ml-4 text-gray-400 hover:text-white"><i class="far fa-heart"></i></button>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex flex-col items-center w-1/3">
+            <div class="flex items-center space-x-6 mb-2">
+                <button class="text-gray-400 hover:text-white transition"><i class="fas fa-random"></i></button>
+                <button class="text-gray-400 hover:text-white transition text-xl"><i class="fas fa-step-backward"></i></button>
+                <button id="play-pause-btn" class="bg-white text-black rounded-full w-8 h-8 flex items-center justify-center hover:scale-105 transition">
+                    <i class="fas fa-play text-sm"></i>
+                </button>
+                <button class="text-gray-400 hover:text-white transition text-xl"><i class="fas fa-step-forward"></i></button>
+                <button class="text-gray-400 hover:text-white transition"><i class="fas fa-redo"></i></button>
+            </div>
+            <div class="flex items-center w-full space-x-2">
+                <span class="text-xs text-gray-400">0:00</span>
+                <div class="h-1 bg-gray-600 rounded-full flex-1 relative overflow-hidden cursor-pointer group">
+                    <div class="h-full bg-white group-hover:bg-spotify-green w-0 transition-all duration-300"></div>
+                </div>
+                <span class="text-xs text-gray-400" id="duration">3:45</span>
+            </div>
+        </div>
+
+        <!-- Volume/Extra -->
+        <div class="flex items-center justify-end w-1/3 space-x-4 text-gray-400">
+            <button class="hover:text-white"><i class="fas fa-microphone text-xs"></i></button>
+            <button class="hover:text-white"><i class="fas fa-list-ul text-xs"></i></button>
+            <button class="hover:text-white"><i class="fas fa-desktop text-xs"></i></button>
+            <div class="flex items-center space-x-2 w-24">
+                <i class="fas fa-volume-up text-xs"></i>
+                <div class="h-1 bg-gray-600 rounded-full flex-1 relative overflow-hidden cursor-pointer">
+                    <div class="h-full bg-white hover:bg-spotify-green w-1/2"></div>
+                </div>
+            </div>
+            <button class="hover:text-white"><i class="fas fa-expand-alt text-xs"></i></button>
+        </div>
+    </footer>
+
+    <script>
+        const playlists = [
+            { id: 1, title: "Peaceful Piano", desc: "Relax and indulge with beautiful piano pieces", img: "https://images.unsplash.com/photo-1520529680386-4f4007887303?w=300&h=300&fit=crop" },
+            { id: 2, title: "Deep Focus", desc: "Keep calm and focus with ambient and post-rock music", img: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=300&h=300&fit=crop" },
+            { id: 3, title: "Instrumental Study", desc: "Focus with soft study music in the background", img: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=300&h=300&fit=crop" },
+            { id: 4, title: "Workday Lounge", desc: "Lounge and chill out music for your workday", img: "https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?w=300&h=300&fit=crop" },
+            { id: 5, title: "Focus Flow", desc: "Uptempo instrumental hip hop beats", img: "https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=300&h=300&fit=crop" }
+        ];
+
+        const spotifyList = [
+            { id: 6, title: "Today's Top Hits", desc: "Jung Kook is on top of the Hottest 50!", img: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&h=300&fit=crop" },
+            { id: 7, title: "RapCaviar", desc: "New music from Drake, Gunna and Doja Cat", img: "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=300&h=300&fit=crop" },
+            { id: 8, title: "All Out 2010s", desc: "The biggest songs of the 2010s", img: "https://images.unsplash.com/photo-1514525253361-bee8718a300c?w=300&h=300&fit=crop" },
+            { id: 9, title: "Rock Classics", desc: "Rock legends & epic songs that continue to inspire", img: "https://images.unsplash.com/photo-1459749411177-042180ce673c?w=300&h=300&fit=crop" },
+            { id: 10, title: "Chill Hits", desc: "Kick back to the best new and recent chill hits", img: "https://images.unsplash.com/photo-1429962714451-bb934ecbb4ec?w=300&h=300&fit=crop" }
+        ];
+
+        function createCards(data, containerId) {
+            const container = document.getElementById(containerId);
+            data.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "bg-card p-4 rounded-lg transition group cursor-pointer shadow-xl";
+                card.innerHTML = `
+                    <div class="relative mb-4">
+                        <img src="${item.img}" class="w-full aspect-square object-cover rounded shadow-lg" alt="${item.title}">
+                        <button class="play-btn-card absolute bottom-2 right-2 bg-spotify-green text-black w-12 h-12 rounded-full flex items-center justify-center shadow-2xl hover:scale-105 transition-all">
+                            <i class="fas fa-play text-xl ml-1"></i>
+                        </button>
+                    </div>
+                    <h3 class="font-bold truncate mb-1">${item.title}</h3>
+                    <p class="text-xs text-gray-400 line-clamp-2 leading-relaxed">${item.desc}</p>
+                `;
+                card.addEventListener('click', () => updatePlayer(item));
+                container.appendChild(card);
+            });
+        }
+
+        function updatePlayer(track) {
+            document.getElementById('current-track-name').innerText = track.title;
+            document.getElementById('current-track-artist').innerText = track.desc.split(' ').slice(0, 3).join(' ') + "...";
+            document.getElementById('current-track-img').src = track.img;
+            
+            // Toggle play icon
+            const playBtn = document.getElementById('play-pause-btn');
+            playBtn.innerHTML = '<i class="fas fa-pause text-sm"></i>';
+            isPlaying = true;
+        }
+
+        let isPlaying = false;
+        document.getElementById('play-pause-btn').addEventListener('click', function() {
+            isPlaying = !isPlaying;
+            this.innerHTML = isPlaying ? '<i class="fas fa-pause text-sm"></i>' : '<i class="fas fa-play text-sm"></i>';
+        });
+
+        // Initialize
+        window.onload = () => {
+            createCards(playlists, 'playlist-container');
+            createCards(spotifyList, 'spotify-playlists');
+        };
+    </script>
+</body>
+</html>
