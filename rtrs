@@ -1,0 +1,213 @@
+#include <stdio.h>      // Standard Input/Output (printf, scanf)
+#include <stdlib.h>     // Standard Library (exit, system)
+#include <string.h>     // String manipulation (strcpy, strcmp)
+
+// --- 1. DATA STRUCTURES ---
+// This defines what a "Train" looks like in our computer's memory
+typedef struct {
+    int train_id;           // e.g., 101
+    char train_name[50];    // e.g., "Rajdhani Express"
+    char destination[30];   // e.g., "Mumbai"
+    int total_seats;
+    int available_seats;
+    float fare;
+} Train;
+
+// This defines what a "Ticket" looks like
+typedef struct {
+    int pnr;                // Unique Ticket Number
+    char passenger_name[50];
+    int train_id;           // Which train they are on
+    int seat_number;
+} Ticket;
+
+// --- 2. GLOBAL VARIABLES ---
+// We use these filenames so we don't have to type them every time
+const char *TRAIN_FILE = "trains.dat";
+const char *TICKET_FILE = "tickets.dat";
+
+// --- 3. FUNCTION PROTOTYPES ---
+void add_train();
+void view_trains();
+void book_ticket();
+void view_my_ticket();
+void clear_screen();
+
+// --- 4. MAIN FUNCTION (The Entry Point) ---
+int main() {
+    int choice;
+    
+    while(1) {
+        clear_screen();
+        printf("\n=== RAILWAY RESERVATION SYSTEM ===\n");
+        printf("1. Admin: Add New Train\n");
+        printf("2. User: View All Trains\n");
+        printf("3. User: Book a Ticket\n");
+        printf("4. User: View My Ticket (PNR)\n");
+        printf("5. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+
+        switch(choice) {
+            case 1: add_train(); break;
+            case 2: view_trains(); break;
+            case 3: book_ticket(); break;
+            case 4: view_my_ticket(); break;
+            case 5: 
+                printf("Exiting... Thank you!\n");
+                exit(0);
+            default: printf("Invalid Choice! Try again.\n");
+        }
+        printf("\nPress Enter to continue...");
+        getchar(); // Wait for user
+        getchar();
+    }
+    return 0;
+}
+
+// --- 5. FUNCTION DEFINITIONS ---
+
+// Helper function to clear the console (Windows specific)
+void clear_screen() {
+    system("cls"); 
+}
+
+void add_train() {
+    Train t;
+    // "ab" means Append Binary. If file exists, add to end. If not, create it.
+    FILE *fp = fopen(TRAIN_FILE, "ab"); 
+    
+    if (fp == NULL) {
+        printf("Error opening file!\n");
+        return;
+    }
+
+    printf("\n--- ADD NEW TRAIN ---\n");
+    printf("Enter Train ID (Integer): ");
+    scanf("%d", &t.train_id);
+    printf("Enter Train Name: ");
+    scanf(" %[^\n]", t.train_name); // Special scanf to read spaces
+    printf("Enter Destination: ");
+    scanf(" %[^\n]", t.destination);
+    printf("Enter Total Seats: ");
+    scanf("%d", &t.total_seats);
+    printf("Enter Fare Price: ");
+    scanf("%f", &t.fare);
+    
+    t.available_seats = t.total_seats; // Initially, all seats are free
+
+    // fwrite(address_of_data, size_of_data, number_of_items, file_pointer)
+    fwrite(&t, sizeof(Train), 1, fp); 
+    fclose(fp); // ALWAYS close the file after using
+    printf("Train Added Successfully!\n");
+}
+
+void view_trains() {
+    Train t;
+    // "rb" means Read Binary. Open existing file for reading.
+    FILE *fp = fopen(TRAIN_FILE, "rb"); 
+    
+    if (fp == NULL) {
+        printf("No trains found! Ask Admin to add trains.\n");
+        return;
+    }
+
+    printf("\n--- AVAILABLE TRAINS ---\n");
+    printf("%-10s %-20s %-15s %-10s %-10s\n", "ID", "Name", "Dest", "Seats", "Fare");
+    printf("----------------------------------------------------------------------\n");
+
+    // fread returns 1 if it successfully reads a Train, 0 if it hits End of File
+    while(fread(&t, sizeof(Train), 1, fp)) {
+        printf("%-10d %-20s %-15s %-10d %-10.2f\n", 
+               t.train_id, t.train_name, t.destination, t.available_seats, t.fare);
+    }
+    fclose(fp);
+}
+
+void book_ticket() {
+    Train t;
+    Ticket tic;
+    int search_id, found = 0;
+    
+    // "rb+" means Read AND Write Binary. We need to modify the seat count.
+    FILE *fp = fopen(TRAIN_FILE, "rb+");
+    FILE *fp_tic = fopen(TICKET_FILE, "ab"); // Append ticket to ticket file
+
+    if (fp == NULL) {
+        printf("Error: Train database missing.\n");
+        return;
+    }
+
+    printf("\nEnter Train ID to Book: ");
+    scanf("%d", &search_id);
+
+    while(fread(&t, sizeof(Train), 1, fp)) {
+        if(t.train_id == search_id) {
+            found = 1;
+            if(t.available_seats > 0) {
+                printf("Seats Available: %d\n", t.available_seats);
+                printf("Enter Passenger Name: ");
+                scanf(" %[^\n]", tic.passenger_name);
+
+                // Update Seat Count in Memory
+                t.available_seats--;
+
+                // Prepare Ticket
+                tic.train_id = t.train_id;
+                tic.pnr = rand() % 9000 + 1000; // Generate random 4-digit PNR
+                tic.seat_number = t.total_seats - t.available_seats;
+
+                // --- CRITICAL FILE HANDLING STEP ---
+                // We just read the train data, so the file "cursor" is at the END of this record.
+                // We must move the cursor BACK one record to overwrite the old data with new seat count.
+                fseek(fp, -(long)sizeof(Train), SEEK_CUR);
+                
+                // Write the updated train data back to train file
+                fwrite(&t, sizeof(Train), 1, fp);
+                
+                // Write the ticket to the ticket file
+                fwrite(&tic, sizeof(Ticket), 1, fp_tic);
+
+                printf("\nBooking SUCCESSFUL!\n");
+                printf("PNR: %d | Seat No: %d\n", tic.pnr, tic.seat_number);
+            } else {
+                printf("Sorry, Train is FULL.\n");
+            }
+            break; // Stop searching once found
+        }
+    }
+    
+    if (!found) printf("Train ID not found.\n");
+
+    fclose(fp);
+    fclose(fp_tic);
+}
+
+void view_my_ticket() {
+    Ticket tic;
+    int search_pnr, found = 0;
+    FILE *fp = fopen(TICKET_FILE, "rb");
+
+    if (fp == NULL) {
+        printf("No bookings found.\n");
+        return;
+    }
+
+    printf("Enter your PNR: ");
+    scanf("%d", &search_pnr);
+
+    while(fread(&tic, sizeof(Ticket), 1, fp)) {
+        if(tic.pnr == search_pnr) {
+            printf("\n--- TICKET DETAILS ---\n");
+            printf("PNR: %d\n", tic.pnr);
+            printf("Name: %s\n", tic.passenger_name);
+            printf("Train ID: %d\n", tic.train_id);
+            printf("Seat No: %d\n", tic.seat_number);
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found) printf("PNR not found.\n");
+    fclose(fp);
+}
